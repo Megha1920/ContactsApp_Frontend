@@ -13,6 +13,7 @@ const authReducer = (state = initialState, action) => {
         case 'LOGOUT':
             return { ...state, token: null, user: null };
         case 'AUTH_ERROR':
+        case 'REGISTER_FAIL':
             return { ...state, error: action.payload };
         default:
             return state;
