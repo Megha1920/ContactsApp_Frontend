@@ -8,8 +8,11 @@ export const login = (email, password) => async (dispatch) => {
         const { access } = response.data;
         localStorage.setItem('authToken', access);
         dispatch({ type: 'LOGIN_SUCCESS', payload: { token: access, user: response.data } });
+        return Promise.resolve(); // Resolve the promise on success
     } catch (error) {
+        // Dispatch the error to the store
         dispatch({ type: 'AUTH_ERROR', payload: error.response ? error.response.data : 'Login failed' });
+        return Promise.reject(); // Reject the promise on failure
     }
 };
 

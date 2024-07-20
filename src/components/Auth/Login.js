@@ -1,20 +1,82 @@
 import React, { useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { login } from '../../redux/actions/authActions';
 import { useNavigate } from 'react-router-dom';
 
 const Login = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [errorMessage, setErrorMessage] = useState('');
+    const [fieldErrors, setFieldErrors] = useState({});
+    const [isEmailTouched, setIsEmailTouched] = useState(false); // Track if email field is interacted with
     const dispatch = useDispatch();
     const navigate = useNavigate();
-    const error = useSelector(state => state.auth.error);
+
+    // Validate fields for blank entries and proper email format
+    const validateFields = () => {
+        const errors = {};
+        if (!email) errors.email = 'Email cannot be blank';
+        else if (!/\S+@\S+\.\S+/.test(email)) errors.email = 'Email must contain @ symbol and be in correct format';
+        if (!password) errors.password = 'Password cannot be blank';
+        return errors;
+    };
+
+    // Handle field change and apply validation
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        if (name === 'email') {
+            setEmail(value);
+            if (isEmailTouched) { // Apply email validation if email field was touched
+                if (!value) {
+                    setFieldErrors(prevErrors => ({ ...prevErrors, email: 'Email cannot be blank' }));
+                } else if (!/\S+@\S+\.\S+/.test(value)) {
+                    setFieldErrors(prevErrors => ({ ...prevErrors, email: 'Email must contain @ symbol and be in correct format' }));
+                } else {
+                    setFieldErrors(prevErrors => ({ ...prevErrors, email: '' }));
+                }
+            }
+        } else if (name === 'password') {
+            setPassword(value);
+            if (!value) {
+                setFieldErrors(prevErrors => ({ ...prevErrors, password: 'Password cannot be blank' }));
+            } else {
+                setFieldErrors(prevErrors => ({ ...prevErrors, password: '' }));
+            }
+        }
+    };
+
+    // Handle blur event for email field to check for @ presence
+    const handleBlur = (e) => {
+        const { name, value } = e.target;
+        if (name === 'email') {
+            setIsEmailTouched(true); // Mark email field as touched
+            if (!value) {
+                setFieldErrors(prevErrors => ({ ...prevErrors, email: 'Email cannot be blank' }));
+            } else if (!/\S+@\S+\.\S+/.test(value)) {
+                setFieldErrors(prevErrors => ({ ...prevErrors, email: 'Email must contain @ symbol ' }));
+            } else {
+                setFieldErrors(prevErrors => ({ ...prevErrors, email: '' }));
+            }
+        }
+    };
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        dispatch(login(email, password)).then(() => {
-            navigate('/contacts');
-        });
+        const errors = validateFields();
+        if (Object.keys(errors).length > 0) {
+            setFieldErrors(errors);
+            return; // Prevent form submission if there are validation errors
+        }
+
+        dispatch(login(email, password))
+            .then(() => {
+                navigate('/contacts'); // Redirect on successful login
+            })
+            .catch(() => {
+                // Display error message if login fails
+                setErrorMessage('The given credentials are wrong. Please try again.');
+                setFieldErrors({}); // Clear field-specific errors on general login error
+            });
     };
 
     // Inline styles
@@ -37,10 +99,11 @@ const Login = () => {
             backgroundColor: '#f9f9f9',
         },
         input: {
-            marginBottom: '15px',
+            marginBottom: '5px',
             padding: '10px',
             borderRadius: '4px',
             border: '1px solid #ddd',
+            width: '100%', // Ensure inputs are full width
         },
         button: {
             backgroundColor: '#0056b3',
@@ -49,6 +112,7 @@ const Login = () => {
             border: 'none',
             padding: '10px',
             borderRadius: '4px',
+            marginTop: '10px',
         },
         buttonHover: {
             backgroundColor: '#004494',
@@ -56,6 +120,7 @@ const Login = () => {
         error: {
             color: 'red',
             marginBottom: '15px',
+            fontSize: '0.875rem',
         }
     };
 
@@ -67,23 +132,26 @@ const Login = () => {
                     <label>Email:</label>
                     <input 
                         type="email" 
+                        name="email"
                         value={email} 
-                        onChange={(e) => setEmail(e.target.value)} 
-                        required 
+                        onChange={handleChange} 
+                        onBlur={handleBlur} // Validate on blur
                         style={styles.input}
                     />
+                    {fieldErrors.email && <div style={styles.error}>{fieldErrors.email}</div>}
                 </div>
                 <div>
                     <label>Password:</label>
                     <input 
                         type="password" 
+                        name="password"
                         value={password} 
-                        onChange={(e) => setPassword(e.target.value)} 
-                        required 
+                        onChange={handleChange} 
                         style={styles.input}
                     />
+                    {fieldErrors.password && <div style={styles.error}>{fieldErrors.password}</div>}
                 </div>
-                {error && <div style={styles.error}>{error.detail}</div>}
+                {errorMessage && <div style={styles.error}>{errorMessage}</div>}
                 <button 
                     type="submit" 
                     style={styles.button} 
