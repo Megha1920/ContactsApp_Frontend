@@ -14,6 +14,7 @@ const ContactList = () => {
     const [contactsPerPage] = useState(5);
     const [showForm, setShowForm] = useState(false);
     const [formData, setFormData] = useState({
+        id: '',
         first_name: '',
         last_name: '',
         address: '',
@@ -23,7 +24,7 @@ const ContactList = () => {
     const [errors, setErrors] = useState({});
 
     useEffect(() => {
-        dispatch(fetchContacts());
+        dispatch(fetchContacts()); // Fetch contacts whenever the component mounts or reloads
     }, [dispatch]);
 
     const handleDelete = (id) => {
@@ -37,6 +38,7 @@ const ContactList = () => {
 
     const handleCreateContact = () => {
         setFormData({
+            id: '',
             first_name: '',
             last_name: '',
             address: '',
@@ -49,6 +51,7 @@ const ContactList = () => {
     const handleCloseForm = () => {
         setShowForm(false);
         setFormData({
+            id: '',
             first_name: '',
             last_name: '',
             address: '',
@@ -96,6 +99,21 @@ const ContactList = () => {
             dispatch(addContact(formattedFormData));
         }
         handleCloseForm();
+    };
+
+    const handleEdit = (id) => {
+        const contactToEdit = contacts.find(contact => contact.id === id);
+        if (contactToEdit) {
+            setFormData({
+                id: contactToEdit.id,
+                first_name: contactToEdit.first_name,
+                last_name: contactToEdit.last_name,
+                address: contactToEdit.address,
+                company: contactToEdit.company,
+                phone_numbers: contactToEdit.phone_numbers.map(phone => phone.number).join(', ')
+            });
+            setShowForm(true);
+        }
     };
 
     const indexOfLastContact = currentPage * contactsPerPage;
@@ -236,24 +254,16 @@ const ContactList = () => {
                             <td style={styles.td}>{contact.company}</td>
                             <td style={styles.td}>{contact.phone_numbers.map(phone => phone.number).join(', ')}</td>
                             <td style={styles.td}>
-                                <button onClick={() => {
-                                    setFormData({
-                                        ...contact,
-                                        phone_numbers: contact.phone_numbers.map(phone => phone.number).join(', ')
-                                    });
-                                    setShowForm(true);
-                                }} style={styles.button}>Edit</button>
-                                <button onClick={() => handleDelete(contact.id)} style={styles.button}>Delete</button>
+                                <button onClick={() => handleEdit(contact.id)} style={styles.button}>Edit</button>
+                                <button onClick={() => handleDelete(contact.id)} style={styles.button} onMouseOver={(e) => e.currentTarget.style.backgroundColor = styles.buttonHover.backgroundColor} onMouseOut={(e) => e.currentTarget.style.backgroundColor = styles.button.backgroundColor}>Delete</button>
                             </td>
                         </tr>
                     ))}
                 </tbody>
             </table>
             <div style={styles.pagination}>
-                {Array.from({ length: Math.ceil(filteredContacts.length / contactsPerPage) }, (_, index) => (
-                    <button key={index} onClick={() => handlePageChange(index + 1)} style={styles.pageButton}>
-                        {index + 1}
-                    </button>
+                {[...Array(Math.ceil(contacts.length / contactsPerPage)).keys()].map(number => (
+                    <button key={number + 1} onClick={() => handlePageChange(number + 1)} style={styles.pageButton} onMouseOver={(e) => e.currentTarget.style.backgroundColor = styles.pageButtonHover.backgroundColor} onMouseOut={(e) => e.currentTarget.style.backgroundColor = styles.pageButton.backgroundColor}>{number + 1}</button>
                 ))}
             </div>
         </div>

@@ -14,20 +14,16 @@ axios.interceptors.request.use(config => {
     return Promise.reject(error);
 });
 
-export const fetchContacts = () => async dispatch => {
+export const fetchContacts = () => async (dispatch) => {
     try {
-        const response = await fetch('/api/contacts');
-        const data = await response.json();
-        // Normalize phone_numbers if it's an array
-        const normalizedData = data.map(contact => ({
-            ...contact,
-            phone_numbers: Array.isArray(contact.phone_numbers)
-                ? contact.phone_numbers.join(', ') // Convert array to string
-                : contact.phone_numbers
-        }));
-        dispatch({ type: 'FETCH_CONTACTS_SUCCESS', payload: normalizedData });
+        const response = await axios.get('/api/contacts/');
+        dispatch({ type: 'FETCH_CONTACTS_SUCCESS', payload: response.data });
     } catch (error) {
-        dispatch({ type: 'FETCH_CONTACTS_FAILURE', payload: error });
+        if (error.response && error.response.status === 401) {
+            dispatch({ type: 'AUTH_ERROR', payload: 'Unauthorized access. Please log in.' });
+        } else {
+            dispatch({ type: 'CONTACT_ERROR', payload: error.response ? error.response.data : error.message });
+        }
     }
 };
 
