@@ -3,7 +3,7 @@ import { useDispatch } from 'react-redux';
 import { addContact, updateContact } from '../../redux/actions/contactActions';
 import { useNavigate } from 'react-router-dom';
 
-const ContactForm = ({ contact }) => {
+const ContactForm = ({ contact, handleCloseForm }) => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
 
@@ -19,17 +19,20 @@ const ContactForm = ({ contact }) => {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
+
         if (name === 'phone_numbers') {
-            // Validate phone numbers
+            // Check for non-numeric characters
             if (/[^0-9,]/.test(value)) {
                 setErrors(prevErrors => ({ ...prevErrors, phone_numbers: 'Phone numbers must be numeric and comma-separated.' }));
-            } else if (value.replace(/,/g, '').length < 10 && value.trim() !== '') {
-                setErrors(prevErrors => ({ ...prevErrors, phone_numbers: 'Phone numbers must be at least 10 digits long.' }));
             } else {
                 setErrors(prevErrors => ({ ...prevErrors, phone_numbers: '' }));
             }
+
+            // Update phone numbers
+            setFormData({ ...formData, [name]: value });
+        } else {
+            setFormData({ ...formData, [name]: value });
         }
-        setFormData({ ...formData, [name]: value });
     };
 
     const validateForm = () => {
@@ -38,13 +41,21 @@ const ContactForm = ({ contact }) => {
         if (!formData.last_name) newErrors.last_name = 'Last name is required';
         if (!formData.address) newErrors.address = 'Address is required';
         if (!formData.company) newErrors.company = 'Company is required';
-        if (!formData.phone_numbers) newErrors.phone_numbers = 'Phone numbers are required';
-        else {
+
+        if (!formData.phone_numbers) {
+            newErrors.phone_numbers = 'Phone numbers are required';
+        } else {
             // Validate phone numbers
             const phoneNumbers = formData.phone_numbers.split(',').map(number => number.trim());
-            const invalidNumbers = phoneNumbers.filter(number => !/^\d{10,}$/.test(number));
-            if (invalidNumbers.length > 0) newErrors.phone_numbers = 'Phone numbers must be at least 10 digits long and numeric.';
+            const invalidNumbers = phoneNumbers.filter(number => {
+                // Check if the phone number is not purely numeric or has mixed characters
+                return !/^\d+$/.test(number) || !/^\d{10}$/.test(number);
+            });
+            if (invalidNumbers.length > 0) {
+                newErrors.phone_numbers = 'Each phone number must be exactly 10 digits long and numeric only.';
+            }
         }
+
         return newErrors;
     };
 
@@ -68,6 +79,9 @@ const ContactForm = ({ contact }) => {
         } else {
             dispatch(addContact(formattedFormData));
         }
+
+        // Close the form and redirect to the contact list
+        handleCloseForm();
         navigate('/contacts');
     };
 

@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchContacts, deleteContact, addContact, updateContact } from '../../redux/actions/contactActions';
+import { fetchContacts, deleteContact } from '../../redux/actions/contactActions';
 import { logout } from '../../redux/actions/authActions';
 import { useNavigate } from 'react-router-dom';
+import ContactForm from './ContactForm'; // Adjust the import path as necessary
 
 const ContactList = () => {
     const dispatch = useDispatch();
@@ -13,15 +14,7 @@ const ContactList = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [contactsPerPage] = useState(5);
     const [showForm, setShowForm] = useState(false);
-    const [formData, setFormData] = useState({
-        id: '',
-        first_name: '',
-        last_name: '',
-        address: '',
-        company: '',
-        phone_numbers: ''
-    });
-    const [errors, setErrors] = useState({});
+    const [selectedContact, setSelectedContact] = useState(null);
 
     useEffect(() => {
         dispatch(fetchContacts());
@@ -37,97 +30,19 @@ const ContactList = () => {
     };
 
     const handleCreateContact = () => {
-        setFormData({
-            id: '',
-            first_name: '',
-            last_name: '',
-            address: '',
-            company: '',
-            phone_numbers: ''
-        });
+        setSelectedContact(null);
         setShowForm(true);
     };
 
     const handleCloseForm = () => {
         setShowForm(false);
-        setFormData({
-            id: '',
-            first_name: '',
-            last_name: '',
-            address: '',
-            company: '',
-            phone_numbers: ''
-        });
-        setErrors({});
-    };
-
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        if (name === 'phone_numbers') {
-            // Validate phone numbers
-            if (/[^0-9,]/.test(value)) {
-                setErrors(prevErrors => ({ ...prevErrors, phone_numbers: 'Phone numbers must be numeric and comma-separated.' }));
-            } else if (value.replace(/,/g, '').length < 10 && value.trim() !== '') {
-                setErrors(prevErrors => ({ ...prevErrors, phone_numbers: 'Phone numbers must be at least 10 digits long.' }));
-            } else {
-                setErrors(prevErrors => ({ ...prevErrors, phone_numbers: '' }));
-            }
-        }
-        setFormData({ ...formData, [name]: value });
-    };
-
-    const validateForm = () => {
-        const newErrors = {};
-        if (!formData.first_name) newErrors.first_name = 'First name is required';
-        if (!formData.last_name) newErrors.last_name = 'Last name is required';
-        if (!formData.address) newErrors.address = 'Address is required';
-        if (!formData.company) newErrors.company = 'Company is required';
-        if (!formData.phone_numbers) newErrors.phone_numbers = 'Phone numbers are required';
-        else {
-            // Validate phone numbers
-            const phoneNumbers = formData.phone_numbers.split(',').map(number => number.trim());
-            const invalidNumbers = phoneNumbers.filter(number => !/^\d{10,}$/.test(number));
-            if (invalidNumbers.length > 0) newErrors.phone_numbers = 'Phone numbers must be at least 10 digits long and numeric.';
-        }
-        return newErrors;
-    };
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        const newErrors = validateForm();
-        if (Object.keys(newErrors).length > 0) {
-            setErrors(newErrors);
-            return;
-        }
-
-        // Format phone numbers
-        const formattedPhoneNumbers = formData.phone_numbers.split(',').map(number => ({ number: number.trim() }));
-        const formattedFormData = {
-            ...formData,
-            phone_numbers: formattedPhoneNumbers
-        };
-
-        if (formData.id) {
-            dispatch(updateContact(formData.id, formattedFormData));
-        } else {
-            dispatch(addContact(formattedFormData));
-        }
-        handleCloseForm();
+        setSelectedContact(null);
     };
 
     const handleEdit = (id) => {
         const contactToEdit = contacts.find(contact => contact.id === id);
-        if (contactToEdit) {
-            setFormData({
-                id: contactToEdit.id,
-                first_name: contactToEdit.first_name,
-                last_name: contactToEdit.last_name,
-                address: contactToEdit.address,
-                company: contactToEdit.company,
-                phone_numbers: contactToEdit.phone_numbers.map(phone => phone.number).join(', ')
-            });
-            setShowForm(true);
-        }
+        setSelectedContact(contactToEdit);
+        setShowForm(true);
     };
 
     const indexOfLastContact = currentPage * contactsPerPage;
@@ -150,7 +65,7 @@ const ContactList = () => {
             height: '100vh',
             backgroundColor: '#f0f2f5',
             fontFamily: 'Arial, sans-serif',
-            paddingTop: '50px', // Adjust padding to ensure content is visible under the fixed button
+            paddingTop: '50px',
         },
         header: {
             fontSize: '2.5em',
@@ -165,10 +80,7 @@ const ContactList = () => {
             padding: '10px',
             borderRadius: '4px',
             transition: 'background-color 0.3s ease',
-            margin: '5px'
-        },
-        buttonHover: {
-            backgroundColor: '#0056b3',
+            margin: '5px',
         },
         input: {
             marginBottom: '15px',
@@ -207,9 +119,6 @@ const ContactList = () => {
             cursor: 'pointer',
             transition: 'background-color 0.3s ease',
         },
-        pageButtonHover: {
-            backgroundColor: '#0056b3',
-        },
         fixedLogoutButton: {
             position: 'fixed',
             top: '10px',
@@ -221,8 +130,28 @@ const ContactList = () => {
             padding: '10px',
             borderRadius: '4px',
             transition: 'background-color 0.3s ease',
-            zIndex: 1000, // Ensure it stays on top of other elements
+            zIndex: 1000,
         },
+        modal: {
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            backgroundColor: '#fff',
+            padding: '20px',
+            borderRadius: '8px',
+            boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)',
+            zIndex: 1001,
+        },
+        overlay: {
+            position: 'fixed',
+            top: '0',
+            left: '0',
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 1000,
+        }
     };
 
     return (
@@ -237,64 +166,37 @@ const ContactList = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 style={styles.input}
             />
-            {showForm && (
-                <form onSubmit={handleSubmit} style={styles.form}>
-                    <div>
-                        <label>First Name:</label>
-                        <input type="text" name="first_name" value={formData.first_name} onChange={handleChange} style={styles.input} />
-                        {errors.first_name && <div style={styles.error}>{errors.first_name}</div>}
-                    </div>
-                    <div>
-                        <label>Last Name:</label>
-                        <input type="text" name="last_name" value={formData.last_name} onChange={handleChange} style={styles.input} />
-                        {errors.last_name && <div style={styles.error}>{errors.last_name}</div>}
-                    </div>
-                    <div>
-                        <label>Address:</label>
-                        <input type="text" name="address" value={formData.address} onChange={handleChange} style={styles.input} />
-                        {errors.address && <div style={styles.error}>{errors.address}</div>}
-                    </div>
-                    <div>
-                        <label>Company:</label>
-                        <input type="text" name="company" value={formData.company} onChange={handleChange} style={styles.input} />
-                        {errors.company && <div style={styles.error}>{errors.company}</div>}
-                    </div>
-                    <div>
-                        <label>Phone Numbers (comma separated):</label>
-                        <input type="text" name="phone_numbers" value={formData.phone_numbers} onChange={handleChange} style={styles.input} />
-                        {errors.phone_numbers && <div style={styles.error}>{errors.phone_numbers}</div>}
-                    </div>
-                    <button type="submit" style={styles.button}>Save Contact</button>
-                    <button type="button" onClick={handleCloseForm} style={styles.button}>Cancel</button>
-                </form>
-            )}
-            <table style={styles.table}>
-                <thead>
-                    <tr>
-                        <th style={styles.th}>First Name</th>
-                        <th style={styles.th}>Last Name</th>
-                        <th style={styles.th}>Address</th>
-                        <th style={styles.th}>Company</th>
-                        <th style={styles.th}>Phone Numbers</th>
-                        <th style={styles.th}>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {filteredContacts.map(contact => (
-                        <tr key={contact.id}>
-                            <td style={styles.td}>{contact.first_name}</td>
-                            <td style={styles.td}>{contact.last_name}</td>
-                            <td style={styles.td}>{contact.address}</td>
-                            <td style={styles.td}>{contact.company}</td>
-                            <td style={styles.td}>{contact.phone_numbers.map(phone => phone.number).join(', ')}</td>
-                            <td style={styles.td}>
-                                <button onClick={() => handleEdit(contact.id)} style={styles.button}>Edit</button>
-                                <button onClick={() => handleDelete(contact.id)} style={styles.button}>Delete</button>
-                            </td>
+            {filteredContacts.length > 0 ? (
+                <table style={styles.table}>
+                    <thead>
+                        <tr>
+                            <th style={styles.th}>First Name</th>
+                            <th style={styles.th}>Last Name</th>
+                            <th style={styles.th}>Address</th>
+                            <th style={styles.th}>Company</th>
+                            <th style={styles.th}>Phone Numbers</th>
+                            <th style={styles.th}>Actions</th>
                         </tr>
-                    ))}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        {filteredContacts.map(contact => (
+                            <tr key={contact.id}>
+                                <td style={styles.td}>{contact.first_name}</td>
+                                <td style={styles.td}>{contact.last_name}</td>
+                                <td style={styles.td}>{contact.address}</td>
+                                <td style={styles.td}>{contact.company}</td>
+                                <td style={styles.td}>{contact.phone_numbers.map(phone => phone.number).join(', ')}</td>
+                                <td style={styles.td}>
+                                    <button onClick={() => handleEdit(contact.id)} style={styles.button}>Edit</button>
+                                    <button onClick={() => handleDelete(contact.id)} style={styles.button}>Delete</button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            ) : (
+                <p>No contacts found.</p>
+            )}
             <div style={styles.pagination}>
                 {Array.from({ length: Math.ceil(contacts.length / contactsPerPage) }, (_, index) => (
                     <button
@@ -306,6 +208,14 @@ const ContactList = () => {
                     </button>
                 ))}
             </div>
+            {showForm && (
+                <>
+                    <div style={styles.overlay} onClick={handleCloseForm}></div>
+                    <div style={styles.modal}>
+                        <ContactForm contact={selectedContact} handleCloseForm={handleCloseForm} />
+                    </div>
+                </>
+            )}
         </div>
     );
 };
