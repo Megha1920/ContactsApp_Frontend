@@ -1,30 +1,36 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { addContact, updateContact } from '../../redux/actions/contactActions';
 import { useNavigate } from 'react-router-dom';
 
 const ContactForm = ({ contact }) => {
-    const [formData, setFormData] = useState(contact || {
-        first_name: '',
-        last_name: '',
-        address: '',
-        company: '',
-        phone_numbers: ''
-    });
-
     const dispatch = useDispatch();
     const navigate = useNavigate();
+
+    const [formData, setFormData] = useState({
+        id: contact ? contact.id : '',
+        first_name: contact ? contact.first_name : '',
+        last_name: contact ? contact.last_name : '',
+        address: contact ? contact.address : '',
+        company: contact ? contact.company : '',
+        phone_numbers: contact ? contact.phone_numbers.map(phone => phone.number).join(', ') : ''
+    });
     const [errors, setErrors] = useState({});
 
-    useEffect(() => {
-        setFormData(contact || {
-            first_name: '',
-            last_name: '',
-            address: '',
-            company: '',
-            phone_numbers: ''
-        });
-    }, [contact]);
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        if (name === 'phone_numbers') {
+            // Validate phone numbers
+            if (/[^0-9,]/.test(value)) {
+                setErrors(prevErrors => ({ ...prevErrors, phone_numbers: 'Phone numbers must be numeric and comma-separated.' }));
+            } else if (value.replace(/,/g, '').length < 10 && value.trim() !== '') {
+                setErrors(prevErrors => ({ ...prevErrors, phone_numbers: 'Phone numbers must be at least 10 digits long.' }));
+            } else {
+                setErrors(prevErrors => ({ ...prevErrors, phone_numbers: '' }));
+            }
+        }
+        setFormData({ ...formData, [name]: value });
+    };
 
     const validateForm = () => {
         const newErrors = {};
@@ -32,13 +38,14 @@ const ContactForm = ({ contact }) => {
         if (!formData.last_name) newErrors.last_name = 'Last name is required';
         if (!formData.address) newErrors.address = 'Address is required';
         if (!formData.company) newErrors.company = 'Company is required';
-        if (!formData.phone_numbers || formData.phone_numbers.length === 0) newErrors.phone_numbers = 'Phone numbers are required';
+        if (!formData.phone_numbers) newErrors.phone_numbers = 'Phone numbers are required';
+        else {
+            // Validate phone numbers
+            const phoneNumbers = formData.phone_numbers.split(',').map(number => number.trim());
+            const invalidNumbers = phoneNumbers.filter(number => !/^\d{10,}$/.test(number));
+            if (invalidNumbers.length > 0) newErrors.phone_numbers = 'Phone numbers must be at least 10 digits long and numeric.';
+        }
         return newErrors;
-    };
-
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData({ ...formData, [name]: value });
     };
 
     const handleSubmit = (e) => {
@@ -48,18 +55,14 @@ const ContactForm = ({ contact }) => {
             setErrors(newErrors);
             return;
         }
-        
+
         // Convert phone_numbers from a string of comma-separated numbers to an array of objects
         const formattedPhoneNumbers = formData.phone_numbers.split(',').map(number => ({ number: number.trim() }));
-        
-        // Create formatted data object
         const formattedFormData = {
             ...formData,
             phone_numbers: formattedPhoneNumbers
         };
 
-        console.log('Formatted Data:', formattedFormData); // Debugging line
-        
         if (contact) {
             dispatch(updateContact(contact.id, formattedFormData));
         } else {
@@ -69,40 +72,23 @@ const ContactForm = ({ contact }) => {
     };
 
     const styles = {
-        container: {
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: '100vh',
-            backgroundColor: '#f0f2f5',
-            fontFamily: 'Arial, sans-serif',
-        },
-        header: {
-            fontSize: '2.5em',
-            color: '#333',
-            marginBottom: '20px',
-        },
         form: {
             display: 'flex',
             flexDirection: 'column',
-            width: '100%',
-            maxWidth: '500px',
+            width: '300px',
+            margin: 'auto',
+            backgroundColor: '#fff',
             padding: '20px',
-            border: '1px solid #ccc',
             borderRadius: '8px',
-            backgroundColor: '#f9f9f9',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+            boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)',
         },
         input: {
             marginBottom: '15px',
             padding: '10px',
             borderRadius: '4px',
             border: '1px solid #ddd',
-        },
-        error: {
-            color: 'red',
-            marginBottom: '15px',
+            fontSize: '16px',
+            width: '100%',
         },
         button: {
             backgroundColor: '#007bff',
@@ -112,44 +98,45 @@ const ContactForm = ({ contact }) => {
             padding: '10px',
             borderRadius: '4px',
             transition: 'background-color 0.3s ease',
+            margin: '5px',
+            fontSize: '16px',
         },
-        buttonHover: {
-            backgroundColor: '#0056b3',
+        error: {
+            color: 'red',
+            fontSize: '0.875em',
+            marginTop: '5px',
         },
     };
 
     return (
-        <div style={styles.container}>
-            <h2 style={styles.header}>{contact ? 'Edit Contact' : 'Add Contact'}</h2>
-            <form onSubmit={handleSubmit} style={styles.form}>
-                <div>
-                    <label>First Name:</label>
-                    <input type="text" name="first_name" value={formData.first_name} onChange={handleChange} style={styles.input} required />
-                    {errors.first_name && <div style={styles.error}>{errors.first_name}</div>}
-                </div>
-                <div>
-                    <label>Last Name:</label>
-                    <input type="text" name="last_name" value={formData.last_name} onChange={handleChange} style={styles.input} required />
-                    {errors.last_name && <div style={styles.error}>{errors.last_name}</div>}
-                </div>
-                <div>
-                    <label>Address:</label>
-                    <input type="text" name="address" value={formData.address} onChange={handleChange} style={styles.input} required />
-                    {errors.address && <div style={styles.error}>{errors.address}</div>}
-                </div>
-                <div>
-                    <label>Company:</label>
-                    <input type="text" name="company" value={formData.company} onChange={handleChange} style={styles.input} required />
-                    {errors.company && <div style={styles.error}>{errors.company}</div>}
-                </div>
-                <div>
-                    <label>Phone Numbers (comma separated):</label>
-                    <input type="text" name="phone_numbers" value={formData.phone_numbers} onChange={handleChange} style={styles.input} required />
-                    {errors.phone_numbers && <div style={styles.error}>{errors.phone_numbers}</div>}
-                </div>
-                <button type="submit" style={styles.button} onMouseOver={(e) => e.currentTarget.style.backgroundColor = styles.buttonHover.backgroundColor} onMouseOut={(e) => e.currentTarget.style.backgroundColor = styles.button.backgroundColor}>Save</button>
-            </form>
-        </div>
+        <form onSubmit={handleSubmit} style={styles.form}>
+            <div>
+                <label>First Name:</label>
+                <input type="text" name="first_name" value={formData.first_name} onChange={handleChange} style={styles.input} />
+                {errors.first_name && <div style={styles.error}>{errors.first_name}</div>}
+            </div>
+            <div>
+                <label>Last Name:</label>
+                <input type="text" name="last_name" value={formData.last_name} onChange={handleChange} style={styles.input} />
+                {errors.last_name && <div style={styles.error}>{errors.last_name}</div>}
+            </div>
+            <div>
+                <label>Address:</label>
+                <input type="text" name="address" value={formData.address} onChange={handleChange} style={styles.input} />
+                {errors.address && <div style={styles.error}>{errors.address}</div>}
+            </div>
+            <div>
+                <label>Company:</label>
+                <input type="text" name="company" value={formData.company} onChange={handleChange} style={styles.input} />
+                {errors.company && <div style={styles.error}>{errors.company}</div>}
+            </div>
+            <div>
+                <label>Phone Numbers (comma separated):</label>
+                <input type="text" name="phone_numbers" value={formData.phone_numbers} onChange={handleChange} style={styles.input} />
+                {errors.phone_numbers && <div style={styles.error}>{errors.phone_numbers}</div>}
+            </div>
+            <button type="submit" style={styles.button}>Save Contact</button>
+        </form>
     );
 };
 
