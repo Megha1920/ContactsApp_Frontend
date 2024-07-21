@@ -145,7 +145,7 @@ const ContactForm = ({ contact, handleCloseForm }) => {
                 {errors.company && <div style={styles.error}>{errors.company}</div>}
             </div>
             <div>
-                <label>Phone Numbers (comma separated):</label>
+                <label>Phone Numbers:</label>
                 <input type="text" name="phone_numbers" value={formData.phone_numbers} onChange={handleChange} style={styles.input} />
                 {errors.phone_numbers && <div style={styles.error}>{errors.phone_numbers}</div>}
             </div>

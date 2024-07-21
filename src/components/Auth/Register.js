@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { register } from '../../redux/actions/authActions';
 
 const Register = () => {
@@ -186,6 +186,15 @@ const Register = () => {
             display: 'inline-block',
             verticalAlign: 'middle',
             lineHeight: '32px',
+        },
+        loginLink: {
+            marginTop: '15px',
+            fontSize: '0.875rem',
+        },
+        link: {
+            color: '#0056b3',
+            textDecoration: 'none',
+            cursor: 'pointer',
         }
     };
 
@@ -306,6 +315,9 @@ const Register = () => {
                     Register
                 </button>
             </form>
+            <div style={styles.loginLink}>
+                Existing user? <Link to="/login" style={styles.link}>Login here</Link>
+            </div>
         </div>
     );
 };

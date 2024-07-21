@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { login } from '../../redux/actions/authActions';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 const Login = () => {
     const [email, setEmail] = useState('');
@@ -121,6 +121,15 @@ const Login = () => {
             color: 'red',
             marginBottom: '15px',
             fontSize: '0.875rem',
+        },
+        signupLink: {
+            marginTop: '15px',
+            fontSize: '0.875rem',
+        },
+        link: {
+            color: '#0056b3',
+            textDecoration: 'none',
+            cursor: 'pointer',
         }
     };
 
@@ -161,6 +170,9 @@ const Login = () => {
                     Login
                 </button>
             </form>
+            <div style={styles.signupLink}>
+                Don't have an account? <Link to="/register" style={styles.link}>Sign up here.</Link>
+            </div>
         </div>
     );
 };
