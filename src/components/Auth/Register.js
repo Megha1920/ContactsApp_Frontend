@@ -15,7 +15,7 @@ const Register = () => {
         last_name: '',
         date_of_birth: '',
         gender: '',
-        phone_number: '',
+        phone_numbers: '', // Store as a comma-separated string
         address: '',
         profile_picture: null,
     });
@@ -25,10 +25,18 @@ const Register = () => {
 
     useEffect(() => {
         if (error) {
+            console.log('Error object:', error); // Log the error object to inspect its structure
             const newFieldErrors = {};
             for (const key in error) {
                 if (error.hasOwnProperty(key)) {
-                    newFieldErrors[key] = error[key].join(', ');
+                    if (Array.isArray(error[key])) {
+                        newFieldErrors[key] = error[key].join(', ');
+                    } else if (typeof error[key] === 'string') {
+                        newFieldErrors[key] = error[key]; // Handle string errors directly
+                    } else {
+                        console.warn(`Unexpected error format for key ${key}:`, error[key]);
+                        newFieldErrors[key] = 'An unexpected error occurred';
+                    }
                 }
             }
             setFieldErrors(newFieldErrors);
@@ -37,50 +45,55 @@ const Register = () => {
 
     const handleChange = (e) => {
         const { name, value, type, files } = e.target;
-        setFormData({
-            ...formData,
-            [name]: type === 'file' ? files[0] : value
-        });
 
-        if (name === 'phone_number') {
-            const phoneNumberPattern = /^[0-9]*$/;
-            if (value === '') {
-                setFieldErrors(prevErrors => ({
-                    ...prevErrors,
-                    phone_number: 'Phone number is required'
-                }));
-            } else if (!phoneNumberPattern.test(value)) {
-                setFieldErrors(prevErrors => ({
-                    ...prevErrors,
-                    phone_number: 'Phone number should only contain numbers'
-                }));
-            } else {
-                setFieldErrors(prevErrors => ({
-                    ...prevErrors,
-                    phone_number: ''
-                }));
+        if (name === 'phone_numbers') {
+            // Real-time validation for phone numbers
+            const phoneNumbersArray = value.split(',').map(num => num.trim());
+            const phoneNumbersWithErrors = phoneNumbersArray.map(phone => {
+                if (!/^\d+$/.test(phone)) {
+                    return 'Phone number should only contain digits';
+                }
+                if (phone.length !== 10) {
+                    return 'Each phone number should be 10 digits long';
+                }
+                return '';
+            });
+            const firstError = phoneNumbersWithErrors.find(error => error);
+            setFieldErrors(prevErrors => ({
+                ...prevErrors,
+                phone_numbers: firstError || ''
+            }));
+
+            setFormData({
+                ...formData,
+                phone_numbers: value
+            });
+        } else {
+            setFormData({
+                ...formData,
+                [name]: type === 'file' ? files[0] : value
+            });
+
+            if (name === 'email') {
+                if (!value.includes('@')) {
+                    setFieldErrors(prevErrors => ({
+                        ...prevErrors,
+                        email: 'Email must contain "@"'
+                    }));
+                } else {
+                    setFieldErrors(prevErrors => ({
+                        ...prevErrors,
+                        email: ''
+                    }));
+                }
             }
-        }
 
-        if (name === 'email') {
-            if (!value.includes('@')) {
-                setFieldErrors(prevErrors => ({
-                    ...prevErrors,
-                    email: 'Email must contain "@"'
-                }));
-            } else {
-                setFieldErrors(prevErrors => ({
-                    ...prevErrors,
-                    email: ''
-                }));
-            }
-        }
-
-        if (name === 'profile_picture') {
-            if (files[0]) {
-                setProfilePicName(files[0].name);
-            } else {
-                setProfilePicName('No file chosen');
+            if (name === 'profile_picture') {
+                if (files[0]) {
+                    setProfilePicName(files[0].name);
+                } else {
+                    setProfilePicName('No file chosen');
+                }
             }
         }
     };
@@ -95,13 +108,19 @@ const Register = () => {
         if (!formData.last_name) errors.last_name = 'Last Name is required';
         if (!formData.date_of_birth) errors.date_of_birth = 'Date of Birth is required';
         if (!formData.gender) errors.gender = 'Gender is required';
-        if (!formData.phone_number) errors.phone_number = 'Phone number is required';
-        else {
-            const phoneNumberPattern = /^[0-9]*$/;
-            if (!phoneNumberPattern.test(formData.phone_number)) {
-                errors.phone_number = 'Phone number should only contain numbers';
+        if (!formData.phone_numbers) errors.phone_numbers = 'Phone numbers are required';
+
+        const phoneNumbersArray = formData.phone_numbers.split(',').map(num => num.trim());
+        phoneNumbersArray.forEach((phone, index) => {
+            if (!phone) {
+                errors.phone_numbers = 'Phone numbers cannot be empty';
+            } else if (!/^\d+$/.test(phone)) {
+                errors.phone_numbers = 'Phone number should only contain digits';
+            } else if (phone.length !== 10) {
+                errors.phone_numbers = 'Each phone number should be 10 digits long';
             }
-        }
+        });
+
         if (!formData.profile_picture) errors.profile_picture = 'Profile picture is required';
         return errors;
     };
@@ -116,7 +135,11 @@ const Register = () => {
         }
 
         try {
-            await dispatch(register(formData));
+            // Convert comma-separated phone numbers into an array
+            const phoneNumbersArray = formData.phone_numbers.split(',').map(num => num.trim());
+            const dataToSend = { ...formData, phone_numbers: phoneNumbersArray };
+
+            await dispatch(register(dataToSend));
             navigate('/login'); // Redirect to login page upon successful registration
         } catch (error) {
             console.error("Registration error:", error);
@@ -271,22 +294,21 @@ const Register = () => {
                     style={styles.select}
                 >
                     <option value="">Select Gender</option>
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                    <option value="other">Other</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
                 </select>
                 {fieldErrors.gender && <div style={styles.errorMessage}>{fieldErrors.gender}</div>}
                 <input
-                    type="tel"
-                    name="phone_number"
-                    value={formData.phone_number}
+                    type="text"
+                    name="phone_numbers"
+                    value={formData.phone_numbers}
                     onChange={handleChange}
-                    placeholder="Phone Number"
+                    placeholder="Phone Numbers (comma separated)"
                     style={styles.input}
                 />
-                {fieldErrors.phone_number && <div style={styles.errorMessage}>{fieldErrors.phone_number}</div>}
-                <input
-                    type="text"
+                {fieldErrors.phone_numbers && <div style={styles.errorMessage}>{fieldErrors.phone_numbers}</div>}
+                <textarea
                     name="address"
                     value={formData.address}
                     onChange={handleChange}
@@ -294,30 +316,21 @@ const Register = () => {
                     style={styles.input}
                 />
                 {fieldErrors.address && <div style={styles.errorMessage}>{fieldErrors.address}</div>}
-                <label htmlFor="profile_picture" style={styles.fileLabel}>
-                    Choose Profile Picture
-                </label>
+                <label htmlFor="profile_picture" style={styles.fileLabel}>Choose Profile Picture</label>
                 <input
                     type="file"
-                    name="profile_picture"
                     id="profile_picture"
+                    name="profile_picture"
                     onChange={handleChange}
                     style={styles.fileInput}
                 />
                 <span style={styles.fileName}>{profilePicName}</span>
                 {fieldErrors.profile_picture && <div style={styles.errorMessage}>{fieldErrors.profile_picture}</div>}
-                <button 
-                    type="submit" 
-                    style={styles.button} 
-                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = styles.buttonHover.backgroundColor}
-                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = styles.button.backgroundColor}
-                >
-                    Register
-                </button>
+                <button type="submit" style={styles.button}>Register</button>
             </form>
-            <div style={styles.loginLink}>
-                Existing user? <Link to="/login" style={styles.link}>Login here</Link>
-            </div>
+            <p style={styles.loginLink}>
+                Already have an account? <Link to="/login" style={styles.link}>Login</Link>
+            </p>
         </div>
     );
 };
