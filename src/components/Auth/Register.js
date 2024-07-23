@@ -177,13 +177,14 @@ const Register = () => {
             border: '1px solid #ddd',
         },
         button: {
-            backgroundColor: '#0056b3',
+            backgroundColor: '#007bff',
             color: '#fff',
             cursor: 'pointer',
             border: 'none',
             padding: '10px',
             borderRadius: '4px',
-            marginTop: '10px',
+            transition: 'background-color 0.3s ease',
+            margin: '5px',
         },
         buttonHover: {
             backgroundColor: '#004494',

@@ -20,25 +20,19 @@ const ContactList = () => {
         dispatch(fetchContacts());
     }, [dispatch]);
 
-    const handleDelete = (id) => {
-        dispatch(deleteContact(id));
-    };
-
+    const handleDelete = (id) => dispatch(deleteContact(id));
     const handleLogout = () => {
         dispatch(logout());
         navigate('/');
     };
-
     const handleCreateContact = () => {
         setSelectedContact(null);
         setShowForm(true);
     };
-
     const handleCloseForm = () => {
         setShowForm(false);
         setSelectedContact(null);
     };
-
     const handleEdit = (id) => {
         const contactToEdit = contacts.find(contact => contact.id === id);
         setSelectedContact(contactToEdit);
@@ -67,7 +61,7 @@ const ContactList = () => {
             fontFamily: 'Arial, sans-serif',
             paddingTop: '50px',
         },
-        header: {
+        title: {
             fontSize: '2.5em',
             color: '#333',
             marginBottom: '20px',
@@ -82,16 +76,17 @@ const ContactList = () => {
             transition: 'background-color 0.3s ease',
             margin: '5px',
         },
+        deleteButton: {
+            backgroundColor: '#dc3545',
+        },
         input: {
             marginBottom: '15px',
             padding: '10px',
             borderRadius: '4px',
             border: '1px solid #ddd',
         },
-        error: {
-            color: 'red',
-            fontSize: '0.875em',
-            marginTop: '5px',
+        tableContainer: {
+            width: '80%',
         },
         table: {
             width: '100%',
@@ -151,14 +146,21 @@ const ContactList = () => {
             height: '100%',
             backgroundColor: 'rgba(0, 0, 0, 0.5)',
             zIndex: 1000,
-        }
+        },
+        centeredButtonContainer: {
+            display: 'flex',
+            justifyContent: 'center',
+            margin: '20px 0',
+        },
     };
 
     return (
         <div style={styles.container}>
             <button onClick={handleLogout} style={styles.fixedLogoutButton}>Logout</button>
-            <h1 style={styles.header}>Contact List</h1>
-            <button onClick={handleCreateContact} style={styles.button}>Add New Contact</button>
+            <h1 style={styles.title}>Contact List</h1>
+            <div style={styles.centeredButtonContainer}>
+                <button onClick={handleCreateContact} style={styles.button}>Add New Contact</button>
+            </div>
             <input
                 type="text"
                 placeholder="Search Contacts"
@@ -166,37 +168,39 @@ const ContactList = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 style={styles.input}
             />
-            {filteredContacts.length > 0 ? (
-                <table style={styles.table}>
-                    <thead>
-                        <tr>
-                            <th style={styles.th}>First Name</th>
-                            <th style={styles.th}>Last Name</th>
-                            <th style={styles.th}>Address</th>
-                            <th style={styles.th}>Company</th>
-                            <th style={styles.th}>Phone Numbers</th>
-                            <th style={styles.th}>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filteredContacts.map(contact => (
-                            <tr key={contact.id}>
-                                <td style={styles.td}>{contact.first_name}</td>
-                                <td style={styles.td}>{contact.last_name}</td>
-                                <td style={styles.td}>{contact.address}</td>
-                                <td style={styles.td}>{contact.company}</td>
-                                <td style={styles.td}>{contact.phone_numbers.map(phone => phone.number).join(', ')}</td>
-                                <td style={styles.td}>
-                                    <button onClick={() => handleEdit(contact.id)} style={styles.button}>Edit</button>
-                                    <button onClick={() => handleDelete(contact.id)} style={styles.button}>Delete</button>
-                                </td>
+            <div style={styles.tableContainer}>
+                {filteredContacts.length > 0 ? (
+                    <table style={styles.table}>
+                        <thead>
+                            <tr>
+                                <th style={styles.th}>First Name</th>
+                                <th style={styles.th}>Last Name</th>
+                                <th style={styles.th}>Address</th>
+                                <th style={styles.th}>Company</th>
+                                <th style={styles.th}>Phone Numbers</th>
+                                <th style={styles.th}>Actions</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
-            ) : (
-                <p>No contacts found.</p>
-            )}
+                        </thead>
+                        <tbody>
+                            {filteredContacts.map(contact => (
+                                <tr key={contact.id}>
+                                    <td style={styles.td}>{contact.first_name}</td>
+                                    <td style={styles.td}>{contact.last_name}</td>
+                                    <td style={styles.td}>{contact.address}</td>
+                                    <td style={styles.td}>{contact.company}</td>
+                                    <td style={styles.td}>{contact.phone_numbers.map(phone => phone.number).join(', ')}</td>
+                                    <td style={styles.td}>
+                                        <button onClick={() => handleEdit(contact.id)} style={styles.button}>Edit</button>
+                                        <button onClick={() => handleDelete(contact.id)} style={{ ...styles.button, ...styles.deleteButton }}>Delete</button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                ) : (
+                    <p>No contacts found.</p>
+                )}
+            </div>
             <div style={styles.pagination}>
                 {Array.from({ length: Math.ceil(contacts.length / contactsPerPage) }, (_, index) => (
                     <button
